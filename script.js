@@ -174,8 +174,50 @@ class CardDeck {
 //  Your code goes below this comment.
 /*------------------------------------------*/
 
-// Create a new card deck.
-const deck = new CardDeck(".deck", ".hand");
+const params = new URLSearchParams(window.location.search);
 
-// Take a look at the deck object and its methods.
-console.log(deck);
+const cardsParam = params.get('cards')?.replace(/\s+/g, '+').split('+') || [];
+const suitsParam = params.get('suits')?.replace(/\s+/g, '+').split('+') || [];
+const ranksParam = params.get('ranks')?.replace(/\s+/g, '+').split('+').map(rank => isNaN(rank) ? rank.toUpperCase() : parseInt(rank, 10)) || [];
+const limitParam = parseInt(params.get('limit'), 10);
+const sortedParam = params.get('sorted');
+
+// Initialize the CardDeck
+const deck = new CardDeck(".deck", ".hand");
+let filteredDeck = [];
+
+// Suits & Ranks
+if (suitsParam.length > 0 || ranksParam.length > 0) {
+    deck.deck.forEach(card => {
+        if ((suitsParam.length === 0 || suitsParam.includes(card.suit)) &&
+            (ranksParam.length === 0 || ranksParam.includes(card.rank))) {
+            filteredDeck.push(card);
+        }
+    });
+}
+
+// Cards
+cardsParam.forEach(cardId => {
+    const card = deck.deck.find(c => c.id === cardId);
+    if (card && !filteredDeck.find(fCard => fCard.id === cardId)) {
+        filteredDeck.push(card);
+    }
+});
+
+// Limit
+if (!isNaN(limitParam) && limitParam > 0) {
+    filteredDeck = filteredDeck.slice(0, limitParam);
+}
+
+// Sorting
+if (sortedParam) {
+    filteredDeck.sort((a, b) => {
+        if (a.suit === b.suit) {
+            return sortedParam === 'desc' ? b.rank - a.rank : a.rank - b.rank;
+        }
+        return sortedParam === 'desc' ? b.suit.localeCompare(a.suit) : a.suit.localeCompare(b.suit);
+    });
+}
+
+// Draw the cards
+filteredDeck.forEach(card => deck.draw(card.id));
